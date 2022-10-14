@@ -2,7 +2,7 @@ import Joi from 'joi';
 import CustomErrorHandler from '../../services/CustomErrorHandler';
 import { User } from '../../models';
 import bcrypt from 'bcrypt';
-import user from '../../models/user';
+
 
 const registerController ={
     async register(req, res, next){
@@ -55,7 +55,7 @@ const registerController ={
 
     
 
-    const userdata = new user ({
+    const userdata = new User ({
         firstName:firstName,
         lastName:lastName,
         userName:userName,
@@ -65,7 +65,7 @@ const registerController ={
 
     try{
         await userdata.save();
-    }catch{
+    }catch(err){
         return next(err);
     }
 
