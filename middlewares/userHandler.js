@@ -10,14 +10,15 @@ const userHandler = async (req, res, next) => {
 
     const token = header.split(' ')[1];
 
-    res.user = token;
-
-
     try{
-        const user = await User.findOne({_id: res.user});
+        const user = await User.findOne({_id: token});
+
         if(!user){
             return next(CustomErrorHandler.tokenNotFound());
         }
+
+        req.user = token;
+
     }catch(err){
         return next(CustomErrorHandler.tokenNotFound());
     }
