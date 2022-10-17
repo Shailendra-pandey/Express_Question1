@@ -1,4 +1,4 @@
-import { User } from "../models";
+import { access_token } from "../models";
 import CustomErrorHandler from "../services/CustomErrorHandler";
 
 const userHandler = async (req, res, next) => {
@@ -9,15 +9,14 @@ const userHandler = async (req, res, next) => {
     }
 
     const token = header.split(' ')[1];
-
     try{
-        const user = await User.findOne({_id: token});
+        const access = await access_token.findOne({access_token: token});
 
-        if(!user){
+        if(!access){
             return next(CustomErrorHandler.tokenNotFound());
         }
 
-        req.user = token;
+        req.user = access.user_id;
 
     }catch(err){
         return next(CustomErrorHandler.tokenNotFound());
