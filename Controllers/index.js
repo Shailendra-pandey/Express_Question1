@@ -1,7 +1,8 @@
 import Joi from 'joi';
 import CustomErrorHandler from '../services/CustomErrorHandler';
-import { User } from '../models';
+import { user, access_token, addressSc } from '../models';
 import bcrypt from 'bcrypt';
+import md5 from 'md5';
 
 const registerController = {
     async register(req, res, next) {
@@ -27,7 +28,7 @@ const registerController = {
         //check if user is in the database already
 
         try {
-            const exist = await User.exists({
+            const exist = await user.exists({
                 userName: req.body.userName,
                 email: req.body.email
             });
@@ -54,7 +55,7 @@ const registerController = {
 
 
 
-        const userdata = new User({
+        const userdata = new user({
             firstName: firstName,
             lastName: lastName,
             userName: userName,
@@ -76,8 +77,6 @@ const registerController = {
 }
 
 
-
-
 const loginController = {
     async login(req, res, next) {
 
@@ -95,9 +94,9 @@ const loginController = {
         }
 
         try {
-            const user = await User.findOne({ email: req.body.email });
+            const users = await user.findOne({ email: req.body.email });
 
-            if (!user) {
+            if (!users) {
                 return next(CustomErrorHandler.wrongCredentials());
             }
 
@@ -107,19 +106,32 @@ const loginController = {
                 return next(error);
             }
 
-            const match = await bcrypt.compare(hashedPassword, user.password, (err, result) => {
+            const match = bcrypt.compare(hashedPassword, users.password, (err, result) => {
 
 
                 if (err) {
-                    return next(error);
+                    return next(err);
                 }
 
 
             });
 
-            const access_token = user._id;
+            const number = Math.random();
+            const token = md5(number);
 
-            res.json({ access_token });
+            const access = new access_token({
+                user_id: users._id,
+                access_token: token
+            });
+
+            try {
+                await access.save();
+            } catch (err) {
+                return next(err);
+            }
+
+
+            res.json({ token });
 
 
 
@@ -130,14 +142,67 @@ const loginController = {
     }
 }
 
+const addressController = {
+    async add_detail(req, res, next) {
+
+        const addressSchema = Joi.object({
+
+            address: Joi.string().required(),
+            city: Joi.string().required(),
+            state: Joi.string().required(),
+            pin_code: Joi.number().required(),
+            phone_no: Joi.number().required()
+
+        });
+
+        const { address, city, state, pin_code, phone_no } = req.body;
+
+        const { error } = addressSchema.validate(req.body);
+
+        if (error) {
+            return next(error);
+        }
+
+        try {
+            const users = await user.findOne({ _id: req.user });
+
+            const add = new addressSc({
+                user_id: users._id,
+                address,
+                city,
+                state,
+                pin_code,
+                phone_no
+            });
+
+            try {
+                await add.save();
+            } catch (err) {
+                return next(err);
+            }
+
+
+
+        } catch (err) {
+            return next(err);
+        }
+
+        res.json("Address added");
+
+    }
+}
+
+
 
 const userController = {
     async userdetail(req, res, next) {
 
         try {
-            const user = await User.findOne({ _id: req.user});
+            const users = await user.findOne({ _id: req.user });
 
-            res.json(user);
+            const address = await addressSc.findOne({user_id: req.user});
+
+            res.json({users, address});
 
         } catch (err) {
             return next(err);
@@ -152,7 +217,7 @@ const deleteController = {
     async delete(req, res, next) {
 
         try {
-            const user = await User.deleteOne({ _id: req.user});
+            const users = await user.deleteOne({ _id: req.user });
 
             res.json('user deleted')
 
@@ -172,9 +237,9 @@ const userlist = {
 
         try {
 
-            const users = await User.find().limit(limit * 1).skip((page - 1) * limit).exec();
+            const users = await user.find().limit(limit * 1).skip((page - 1) * limit).exec();
 
-            const count = await User.countDocuments();
+            const count = await user.countDocuments();
 
             res.json({
                 users,
@@ -189,4 +254,4 @@ const userlist = {
     }
 }
 
-export default { registerController, loginController, userController, deleteController, userlist };
+export default { registerController, loginController, userController, deleteController, userlist, addressController };

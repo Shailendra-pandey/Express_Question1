@@ -1,1 +1,1 @@
-export{ default as User} from './user';
+export { user, access_token, addressSc } from './user'
