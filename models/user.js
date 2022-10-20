@@ -13,11 +13,6 @@ const userSchema = new Schema({
 const accessSchema = new Schema({
     user_id: { type: String, require: true },
     access_token: { type: String, require: true },
-    expiresAtnow:{
-        type:Date,
-        default: Date.now(),
-        expires: 3600, 
-    }
 });
 
 const addressSchema = new Schema({
@@ -27,10 +22,15 @@ const addressSchema = new Schema({
     state: { type: String, require: true },
     pin_code: { type: Number, require: true },
     phone_no: { type: Number, require: true }
-})
+});
+
+const imageschema = new Schema({
+    image:{data:Buffer, contentType: String}
+});
 
 const user = mongoose.model('User', userSchema, 'userdetails');
 const access_token = mongoose.model('access_token', accessSchema);
 const addressSc = mongoose.model('address', addressSchema);
+const images = mongoose.model('image', imageschema);
 
-export { user, access_token, addressSc };
+export { user, access_token, addressSc, images };

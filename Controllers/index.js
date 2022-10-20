@@ -1,8 +1,15 @@
 import Joi from 'joi';
 import CustomErrorHandler from '../services/CustomErrorHandler';
-import { user, access_token, addressSc } from '../models';
+import { user, access_token, addressSc, images } from '../models';
 import bcrypt from 'bcrypt';
-import md5 from 'md5';
+import JwtService from '../services/JwtService';
+import passport from 'passport';
+import dotenv from 'dotenv';
+import { cloud } from '../config/cloudinary';
+const cloudinary = require('cloudinary');
+dotenv.config();
+import upload from '../config/multer';
+const flags = require('flags');
 
 const registerController = {
     async register(req, res, next) {
@@ -25,52 +32,65 @@ const registerController = {
             return next(error);
         }
 
-        //check if user is in the database already
 
-        try {
-            const exist = await user.exists({
-                userName: req.body.userName,
-                email: req.body.email
-            });
+        passport.authenticate('local-signup', { session: false }, (err, newUser) => {
 
-            if (exist) {
-                return next(CustomErrorHandler.alreadyExist("user name or email exists in database"));
+            if (err) {
+                return res.json(err);
             }
 
-        } catch (err) {
-            return next(err);
-        }
+            if (newUser) {
+                return res.json("User registerd successfully");
+            }
+
+        })(req, res, next);
+
+        //check if user is in the database already
+
+        // try {
+        //     const exist = await user.exists({
+        //         userName: req.body.userName,
+        //         email: req.body.email
+        //     });
+
+        //     if (exist) {
+        //         return next(CustomErrorHandler.alreadyExist("user name or email exists in database"));
+        //     }
+
+        // } catch (err) {
+        //     return next(err);
+        // }
 
 
 
-        const { firstName, lastName, userName, email, password } = req.body;
+        // const { firstName, lastName, userName, email, password } = req.body;
 
 
-        // password encryption
+        // // password encryption
 
-        const encryptPassword = await bcrypt.hash(password, 10);
-
-
-        // data
+        // const encryptPassword = await bcrypt.hash(password, 10);
 
 
-
-        const userdata = new user({
-            firstName: firstName,
-            lastName: lastName,
-            userName: userName,
-            email: email,
-            password: encryptPassword
-        })
-
-        try {
-            await userdata.save();
-        } catch (err) {
-            return next(err);
-        }
+        // // data
 
 
-        res.json("User registerd successfully");
+
+        // const userdata = new user({
+        //     firstName: firstName,
+        //     lastName: lastName,
+        //     userName: userName,
+        //     email: email,
+        //     password: encryptPassword
+        // })
+
+        // try {
+        //     await userdata.save();
+        // } catch (err) {
+        //     return next(err);
+        // }
+
+
+        // res.json("User registerd successfully");
 
     }
 
@@ -80,64 +100,58 @@ const registerController = {
 const loginController = {
     async login(req, res, next) {
 
-        const loginSchema = Joi.object({
+        const loginValidate = Joi.object({
 
             email: Joi.string().email().required(),
             password: Joi.string().required()
 
         });
 
-        const { error } = loginSchema.validate(req.body);
+        const { error } = loginValidate.validate(req.body);
 
         if (error) {
             return next(error);
         }
 
-        try {
-            const users = await user.findOne({ email: req.body.email });
+        passport.authenticate('local', { session: false }, (err, users) => {
 
-            if (!users) {
-                return next(CustomErrorHandler.wrongCredentials());
+            if (err) {
+                return res.json(err);
             }
 
-            const hashedPassword = await bcrypt.hash(req.body.password, 10);
-
-            if (error) {
-                return next(error);
-            }
-
-            const match = bcrypt.compare(hashedPassword, users.password, (err, result) => {
-
-
-                if (err) {
-                    return next(err);
-                }
-
-
-            });
-
-            const number = Math.random();
-            const token = md5(number);
-
-            const access = new access_token({
-                user_id: users._id,
-                access_token: token
-            });
-
-            try {
-                await access.save();
-            } catch (err) {
-                return next(err);
-            }
-
-
+            const token = JwtService.sign({ _id: users._id });
             res.json({ token });
+        })(req, res, next);
+
+        // try {
+        //     const users = await user.findOne({ email: req.body.email });
 
 
 
-        } catch (error) {
-            return next(error);
-        }
+        //     if (!users) {
+        //         return next(CustomErrorHandler.wrongCredentials());
+        //     }
+
+        //     if (error) {
+        //         return next(error);
+        //     }
+
+        //     const match = await bcrypt.compare(req.body.password, users.password);
+
+        //     if (match) {
+
+        //         const token = await JwtService.sign({ _id: users._id });
+        //         res.json({ token });
+
+        //     } else {
+        //         res.json('incorrect password');
+        //     }
+
+
+
+        // } catch (error) {
+        //     return next(error);
+        // }
 
     }
 }
@@ -200,9 +214,9 @@ const userController = {
         try {
             const users = await user.findOne({ _id: req.user });
 
-            const address = await addressSc.findOne({user_id: req.user});
+            const address = await addressSc.findOne({ user_id: req.user });
 
-            res.json({users, address});
+            res.json({ users, address });
 
         } catch (err) {
             return next(err);
@@ -218,8 +232,6 @@ const deleteController = {
 
         try {
             const users = await user.deleteOne({ _id: req.user });
-
-            res.json('user deleted')
 
         } catch (err) {
             return next(err);
@@ -254,4 +266,98 @@ const userlist = {
     }
 }
 
-export default { registerController, loginController, userController, deleteController, userlist, addressController };
+
+const addressDelete = {
+    async delete(req, res, next) {
+        try {
+            await addressSc.deleteMany({ user_id: req.user });
+            return res.json('address deleted');
+
+        } catch (err) {
+            return next(err);
+        }
+    }
+}
+
+const forgotPassword = {
+    async resetPassword(req, res, next) {
+        try {
+            const users = await user.findOne({ email: req.body.email });
+
+            if (users) {
+                const token = JwtService.sign({ _id: users._id }, '15m');
+                return res.json({ token });
+            }
+
+            return res.json('user not found');
+
+        } catch (err) {
+            return next(err);
+        }
+    }
+}
+
+const verifyResetPassword = {
+    async verifyPassword(req, res, next) {
+
+        const passValid = Joi.object({
+            password: Joi.string().required(),
+            confirmPassword: Joi.ref('password')
+        });
+
+        const { error } = passValid.validate(req.body);
+
+        if (error) {
+            return next(error);
+        }
+
+        try {
+            const users = await user.findOne({ _id: req.user });
+
+            const encryptPassword = await bcrypt.hash(req.body.password, 10);
+
+            await users.updateOne({ password: encryptPassword });
+
+            return res.json('password changed');
+        } catch (err) {
+            return res.json(err);
+        }
+    }
+}
+
+const profileImage = {
+    async Images(req, res, next) {
+
+        try {
+
+            const flag = req.body.online;
+
+            if (flag == "true") {
+
+                let data = await cloudinary.v2.uploader.upload(req.file.path);
+                return res.json(data.secure_url);
+
+            } else {
+
+                const newImage = new images({
+                    image: {
+                        data: req.file.filename,
+                        contentType: "image/png"
+                    }
+                })
+
+                newImage.save();
+
+                return res.json('image uploaded');
+            }
+        } catch (err) {
+            return res.json(err);
+        }
+    }
+}
+
+export default {
+    registerController, loginController, userController,
+    deleteController, userlist, addressController, addressDelete,
+    forgotPassword, verifyResetPassword, profileImage
+};

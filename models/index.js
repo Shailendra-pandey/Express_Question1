@@ -1,1 +1,1 @@
-export { user, access_token, addressSc } from './user'
+export { user, access_token, addressSc, images } from './user'

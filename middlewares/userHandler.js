@@ -1,5 +1,7 @@
+import Jwt from "jsonwebtoken";
 import { access_token } from "../models";
 import CustomErrorHandler from "../services/CustomErrorHandler";
+import JwtService from "../services/JwtService";
 
 const userHandler = async (req, res, next) => {
     let header = req.headers.authorization;
@@ -9,21 +11,22 @@ const userHandler = async (req, res, next) => {
     }
 
     const token = header.split(' ')[1];
+
+    if(!token){
+        return next(CustomErrorHandler.tokenNotFound());
+    } 
+
+
     try{
-        const access = await access_token.findOne({access_token: token});
+        const {_id} = await JwtService.verify(token);
+        req.user = {_id};
 
-        if(!access){
-            return next(CustomErrorHandler.tokenNotFound());
-        }
+        next();
 
-        req.user = access.user_id;
 
     }catch(err){
-        return next(CustomErrorHandler.tokenNotFound());
+        return next(err);
     }
-
-    next();
-
 }
 
 

@@ -3,6 +3,9 @@ const { APP_PORT, DB_URL } = require('./config');
 import mongoose from 'mongoose';
 import errorHandler from './middlewares/errorHandler';
 import routes from './routes';
+import passport from 'passport';
+import init from './config/LoginPassport';
+import initialize from './config/RegisterPassport';
 
 const app = express();
 
@@ -13,6 +16,12 @@ db.once('open', () => {
     console.log('DB connected');
 });
 
+//login
+init(passport);
+
+//register
+initialize(passport);
+
 
 app.use(express.json());
 app.use(routes);
@@ -20,4 +29,4 @@ app.use(routes);
 
 
 app.use(errorHandler);
-app.listen(APP_PORT, ()=> console.log(`listening on port ${APP_PORT}`));
+app.listen(APP_PORT, () => console.log(`listening on port ${APP_PORT}`));
