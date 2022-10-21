@@ -10,6 +10,7 @@ const cloudinary = require('cloudinary');
 dotenv.config();
 import upload from '../config/multer';
 const flags = require('flags');
+const nodemailer = require('nodemailer');
 
 const registerController = {
     async register(req, res, next) {
@@ -40,9 +41,46 @@ const registerController = {
             }
 
             if (newUser) {
-                return res.json("User registerd successfully");
-            }
 
+                nodemailer.createTestAccount((err, account) => {
+                    if (err) {
+                        console.error('Failed to create a testing account. ' + err.message);
+                        return process.exit(1);
+                    }
+
+                    let transporter = nodemailer.createTransport({
+                        host: account.smtp.host,
+                        port: account.smtp.port,
+                        secure: account.smtp.secure,
+                        auth: {
+                            user: account.user,
+                            pass: account.pass
+                        }
+                    });
+
+                    let message = {
+                        from: 'shailendra <shailendrapandey028@gmail.com',
+
+                        to: 'Aman <aman@gmail.com',
+
+                        subject: 'Registration',
+
+                        text: 'You are registered successfully'
+                    };
+
+                    transporter.sendMail(message, (err, info) => {
+                        if (err) {
+                            console.log(err.message);
+                            return;
+                        }
+                        console.log(info.messageId);
+                        console.log(nodemailer.getTestMessageUrl(info));
+                    });
+
+                    return res.json('user register successfully')
+
+                })
+            }
         })(req, res, next);
 
         //check if user is in the database already
@@ -284,12 +322,50 @@ const forgotPassword = {
         try {
             const users = await user.findOne({ email: req.body.email });
 
-            if (users) {
-                const token = JwtService.sign({ _id: users._id }, '15m');
-                return res.json({ token });
+            if (!users) {
+                return res.json('user not found');
             }
 
-            return res.json('user not found');
+            const token = JwtService.sign({ _id: users._id }, '15m');
+
+            nodemailer.createTestAccount((err, account) => {
+                if (err) {
+                    console.error('Failed to create a testing account. ' + err.message);
+                    return process.exit(1);
+                }
+
+                let transporter = nodemailer.createTransport({
+                    host: account.smtp.host,
+                    port: account.smtp.port,
+                    secure: account.smtp.secure,
+                    auth: {
+                        user: account.user,
+                        pass: account.pass
+                    }
+                });
+
+                let message = {
+                    from: 'shailendra <shailendrapandey028@gmail.com',
+
+                    to: 'Aman <aman@gmail.com',
+
+                    subject: 'Password reset token',
+
+                    text: `http://localhost:5000/verify-reset-password?Bearer ${token}`
+                };
+
+                transporter.sendMail(message, (err, info) => {
+                    if (err) {
+                        console.log(err.message);
+                        return;
+                    }
+                    console.log(info.messageId);
+                    console.log(nodemailer.getTestMessageUrl(info));
+                });
+
+                return res.json('token send to email')
+
+            })
 
         } catch (err) {
             return next(err);
@@ -314,11 +390,53 @@ const verifyResetPassword = {
         try {
             const users = await user.findOne({ _id: req.user });
 
+            if(!users){
+                return res.json('user not found');
+            }
+
             const encryptPassword = await bcrypt.hash(req.body.password, 10);
 
             await users.updateOne({ password: encryptPassword });
 
-            return res.json('password changed');
+
+            nodemailer.createTestAccount((err, account) => {
+                if (err) {
+                    console.error('Failed to create a testing account. ' + err.message);
+                    return process.exit(1);
+                }
+
+                let transporter = nodemailer.createTransport({
+                    host: account.smtp.host,
+                    port: account.smtp.port,
+                    secure: account.smtp.secure,
+                    auth: {
+                        user: account.user,
+                        pass: account.pass
+                    }
+                });
+
+                let message = {
+                    from: 'shailendra <shailendrapandey028@gmail.com',
+
+                    to: 'Aman <aman@gmail.com',
+
+                    subject: 'Password reset',
+
+                    text: 'Password reset successfully'
+                };
+
+                transporter.sendMail(message, (err, info) => {
+                    if (err) {
+                        console.log(err.message);
+                        return;
+                    }
+                    console.log(info.messageId);
+                    console.log(nodemailer.getTestMessageUrl(info));
+                });
+
+                return res.json('email send')
+
+            })
         } catch (err) {
             return res.json(err);
         }
