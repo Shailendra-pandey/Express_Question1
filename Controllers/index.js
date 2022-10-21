@@ -9,8 +9,8 @@ import { cloud } from '../config/cloudinary';
 const cloudinary = require('cloudinary');
 dotenv.config();
 import upload from '../config/multer';
-const flags = require('flags');
 const nodemailer = require('nodemailer');
+import mail from '../services/email';
 
 const registerController = {
     async register(req, res, next) {
@@ -42,44 +42,21 @@ const registerController = {
 
             if (newUser) {
 
-                nodemailer.createTestAccount((err, account) => {
-                    if (err) {
-                        console.error('Failed to create a testing account. ' + err.message);
-                        return process.exit(1);
-                    }
 
-                    let transporter = nodemailer.createTransport({
-                        host: account.smtp.host,
-                        port: account.smtp.port,
-                        secure: account.smtp.secure,
-                        auth: {
-                            user: account.user,
-                            pass: account.pass
-                        }
-                    });
+                let message = {
+                    from: 'sydnie56@ethereal.email',
 
-                    let message = {
-                        from: 'shailendra <shailendrapandey028@gmail.com',
+                    to: newUser.email,
 
-                        to: 'Aman <aman@gmail.com',
+                    subject: 'Registration',
 
-                        subject: 'Registration',
+                    text: 'You are registered successfully'
+                };
 
-                        text: 'You are registered successfully'
-                    };
+                mail(message);
 
-                    transporter.sendMail(message, (err, info) => {
-                        if (err) {
-                            console.log(err.message);
-                            return;
-                        }
-                        console.log(info.messageId);
-                        console.log(nodemailer.getTestMessageUrl(info));
-                    });
+                return res.json('user register successfully')
 
-                    return res.json('user register successfully')
-
-                })
             }
         })(req, res, next);
 
@@ -328,44 +305,19 @@ const forgotPassword = {
 
             const token = JwtService.sign({ _id: users._id }, '15m');
 
-            nodemailer.createTestAccount((err, account) => {
-                if (err) {
-                    console.error('Failed to create a testing account. ' + err.message);
-                    return process.exit(1);
-                }
+            let message = {
+                from: 'sydnie <sydnie56@ethereal.email>',
 
-                let transporter = nodemailer.createTransport({
-                    host: account.smtp.host,
-                    port: account.smtp.port,
-                    secure: account.smtp.secure,
-                    auth: {
-                        user: account.user,
-                        pass: account.pass
-                    }
-                });
+                to: users.email,
 
-                let message = {
-                    from: 'shailendra <shailendrapandey028@gmail.com',
+                subject: 'Password reset token',
 
-                    to: 'Aman <aman@gmail.com',
+                text: `http://localhost:5000/verify-reset-password?Bearer ${token}`
+            };
 
-                    subject: 'Password reset token',
+            mail(message);
 
-                    text: `http://localhost:5000/verify-reset-password?Bearer ${token}`
-                };
-
-                transporter.sendMail(message, (err, info) => {
-                    if (err) {
-                        console.log(err.message);
-                        return;
-                    }
-                    console.log(info.messageId);
-                    console.log(nodemailer.getTestMessageUrl(info));
-                });
-
-                return res.json('token send to email')
-
-            })
+            return res.json('token send to email')
 
         } catch (err) {
             return next(err);
@@ -390,7 +342,7 @@ const verifyResetPassword = {
         try {
             const users = await user.findOne({ _id: req.user });
 
-            if(!users){
+            if (!users) {
                 return res.json('user not found');
             }
 
@@ -399,44 +351,20 @@ const verifyResetPassword = {
             await users.updateOne({ password: encryptPassword });
 
 
-            nodemailer.createTestAccount((err, account) => {
-                if (err) {
-                    console.error('Failed to create a testing account. ' + err.message);
-                    return process.exit(1);
-                }
+            let message = {
+                from: 'sydnie56@ethereal.email',
 
-                let transporter = nodemailer.createTransport({
-                    host: account.smtp.host,
-                    port: account.smtp.port,
-                    secure: account.smtp.secure,
-                    auth: {
-                        user: account.user,
-                        pass: account.pass
-                    }
-                });
+                to: users.email,
 
-                let message = {
-                    from: 'shailendra <shailendrapandey028@gmail.com',
+                subject: 'Registration',
 
-                    to: 'Aman <aman@gmail.com',
+                text: 'You are registered successfully'
+            };
 
-                    subject: 'Password reset',
+            mail(message);
 
-                    text: 'Password reset successfully'
-                };
+            return res.json('email send')
 
-                transporter.sendMail(message, (err, info) => {
-                    if (err) {
-                        console.log(err.message);
-                        return;
-                    }
-                    console.log(info.messageId);
-                    console.log(nodemailer.getTestMessageUrl(info));
-                });
-
-                return res.json('email send')
-
-            })
         } catch (err) {
             return res.json(err);
         }
