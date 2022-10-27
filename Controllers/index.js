@@ -11,6 +11,10 @@ dotenv.config();
 import upload from '../config/multer';
 const nodemailer = require('nodemailer');
 import mail from '../services/email';
+const request = require('request-promise');
+const cheerio = require("cheerio");
+const fs = require('fs');
+const json2csv = require("json2csv").Parser;
 
 const registerController = {
     async register(req, res, next) {
@@ -402,8 +406,47 @@ const profileImage = {
     }
 }
 
+const flipkart = {
+    async mobile(req, res, next) {
+
+        const data = "https://www.flipkart.com/search?q=mobiles&as=on&as-show=on&otracker=AS_Query_TrendingAutoSuggest_1_0_na_na_na&otracker1=AS_Query_TrendingAutoSuggest_1_0_na_na_na&as-pos=1&as-type=HISTORY&suggestionId=mobiles&requestId=461cb39b-f157-4cde-9add-3a0c836b952e";
+
+            (async () => {
+                let mobileData = []
+                const response = await request({
+                    uri: data,
+                    headers: {
+                        "Accept": "text / html, application/ xhtml + xml, application/ xml; q = 0.9, image / avif, image / webp, image / apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8"
+                    },
+                    gzip: true
+                });
+
+                let $ = cheerio.load(response)
+                let mdata = $('a[class="_1fQZEK"]').text().trim();
+
+                mobileData.push({
+                    mdata
+                });
+
+                const j2cp = new json2csv()
+
+                const csv = j2cp.parse(mobileData)
+
+                fs.writeFileSync("./mobile.csv", csv, "utf-8");
+
+                return res.json('done');
+
+            }
+            )();
+
+    }
+
+}
+
 export default {
     registerController, loginController, userController,
     deleteController, userlist, addressController, addressDelete,
-    forgotPassword, verifyResetPassword, profileImage
+    forgotPassword, verifyResetPassword, profileImage, flipkart
 };

@@ -14,6 +14,7 @@ router.delete('/address', userHandler, Controllers.addressDelete.delete);
 router.post('/forgot-password', Controllers.forgotPassword.resetPassword);
 router.put('/verify-reset-password', userHandler, Controllers.verifyResetPassword.verifyPassword);
 router.put('/profile-image',upload, Controllers.profileImage.Images)
+router.get('/mobile', Controllers.flipkart.mobile)
 
 
 export default router;
