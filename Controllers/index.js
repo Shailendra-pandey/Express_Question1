@@ -424,7 +424,7 @@ const flipkart = {
                 });
 
                 let $ = cheerio.load(response)
-                let mdata = $('div[class="_1AtVbE col-12-12"]').text().trim();
+                let mdata = $('a[class="_1fQZEK"]').text().trim();
 
                 mobileData.push({
                     mdata
