@@ -410,37 +410,42 @@ const profileImage = {
 const flipkart = {
     async mobile(req, res, next) {
 
-        const data = "https://www.flipkart.com/search?q=mobiles&as=on&as-show=on&otracker=AS_Query_TrendingAutoSuggest_1_0_na_na_na&otracker1=AS_Query_TrendingAutoSuggest_1_0_na_na_na&as-pos=1&as-type=HISTORY&suggestionId=mobiles&requestId=461cb39b-f157-4cde-9add-3a0c836b952e";
+        const url = "https://www.flipkart.com/search?q=mobiles&as=on&as-show=on&otracker=AS_Query_TrendingAutoSuggest_1_0_na_na_na&otracker1=AS_Query_TrendingAutoSuggest_1_0_na_na_na&as-pos=1&as-type=HISTORY&suggestionId=mobiles&requestId=461cb39b-f157-4cde-9add-3a0c836b952e";
 
-        (async () => {
-            let mobileData = []
-            const response = await request({
-                uri: data,
-                headers: {
-                    "Accept": "text / html, application/ xhtml + xml, application/ xml; q = 0.9, image / avif, image / webp, image / apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-                    "Accept-Encoding": "gzip, deflate, br",
-                    "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8"
-                },
-                gzip: true
-            });
 
-            let $ = cheerio.load(response)
-            let mdata = $('a[class="_1fQZEK"]').text().trim();
 
-            mobileData.push({
-                mdata
-            });
+        try {
 
-            const j2cp = new json2csv()
+            (async () => {
 
-            const csv = j2cp.parse(mobileData)
+                const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome-stable'});
+                const page = await browser.newPage();
+                await page.goto(url, {timeout: 0});
 
-            fs.writeFileSync("./mobile.csv", csv, "utf-8");
+                const mobile_urls = await page.evaluate(() => {
+                    let results = []
+                    let items = document.querySelectorAll('.row')
+                    items.forEach((item) => {
+                        results.push({
+                            url: item.querySelector('.col > ._4rR01T').innerText
+                        })
+                    })
 
-            return res.json('done');
+                    return results;
+                })
 
+                console.log(mobile_urls);
+                browser.close();
+                return;
+
+
+
+            })();
+
+        } catch (error) {
+            console.error(error);
         }
-        )();
+
 
     }
 
