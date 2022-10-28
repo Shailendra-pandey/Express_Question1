@@ -15,6 +15,7 @@ router.post('/forgot-password', Controllers.forgotPassword.resetPassword);
 router.put('/verify-reset-password', userHandler, Controllers.verifyResetPassword.verifyPassword);
 router.put('/profile-image',upload, Controllers.profileImage.Images)
 router.get('/mobile', Controllers.flipkart.mobile)
+router.get('/tshirt', Controllers.snapdeal.tshirt)
 
 
 export default router;
