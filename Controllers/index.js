@@ -1,6 +1,6 @@
 import Joi from 'joi';
 import CustomErrorHandler from '../services/CustomErrorHandler';
-import { user, access_token, addressSc, images } from '../models';
+import { user, access_token, addressSc, images, tshirt } from '../models';
 import bcrypt from 'bcrypt';
 import JwtService from '../services/JwtService';
 import passport from 'passport';
@@ -15,6 +15,7 @@ const request = require('request-promise');
 const cheerio = require("cheerio");
 const fs = require('fs');
 const json2csv = require("json2csv").Parser;
+const puppeteer = require("puppeteer-core")
 
 const registerController = {
     async register(req, res, next) {
@@ -411,35 +412,80 @@ const flipkart = {
 
         const data = "https://www.flipkart.com/search?q=mobiles&as=on&as-show=on&otracker=AS_Query_TrendingAutoSuggest_1_0_na_na_na&otracker1=AS_Query_TrendingAutoSuggest_1_0_na_na_na&as-pos=1&as-type=HISTORY&suggestionId=mobiles&requestId=461cb39b-f157-4cde-9add-3a0c836b952e";
 
+        (async () => {
+            let mobileData = []
+            const response = await request({
+                uri: data,
+                headers: {
+                    "Accept": "text / html, application/ xhtml + xml, application/ xml; q = 0.9, image / avif, image / webp, image / apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8"
+                },
+                gzip: true
+            });
+
+            let $ = cheerio.load(response)
+            let mdata = $('a[class="_1fQZEK"]').text().trim();
+
+            mobileData.push({
+                mdata
+            });
+
+            const j2cp = new json2csv()
+
+            const csv = j2cp.parse(mobileData)
+
+            fs.writeFileSync("./mobile.csv", csv, "utf-8");
+
+            return res.json('done');
+
+        }
+        )();
+
+    }
+
+}
+
+const snapdeal = {
+    async tshirt(req, res, next) {
+
+        try {
             (async () => {
-                let mobileData = []
-                const response = await request({
-                    uri: data,
-                    headers: {
-                        "Accept": "text / html, application/ xhtml + xml, application/ xml; q = 0.9, image / avif, image / webp, image / apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-                        "Accept-Encoding": "gzip, deflate, br",
-                        "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8"
-                    },
-                    gzip: true
-                });
+                const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome-stable' });
+                const page = await browser.newPage();
+                await page.goto('https://www.snapdeal.com/products/men-apparel-tshirts?sort=plrty');
 
-                let $ = cheerio.load(response)
-                let mdata = $('a[class="_1fQZEK"]').text().trim();
+                const tshirtDetail = await page.evaluate(() => {
+                    let results = []
+                    let items = document.querySelectorAll('.product-desc-rating ')
+                    items.forEach((item) => {
+                        results.push({
+                            title: item.querySelector('.product-title ').innerText,
+                            price: item.querySelector('.product-price').innerText,
+                        })
+                    })
 
-                mobileData.push({
-                    mdata
-                });
+                    return results
+                })
 
-                const j2cp = new json2csv()
+                tshirtDetail.forEach((newtshirt) => {
+                    const t_shirt = new tshirt({
+                        title: newtshirt.title,
+                        price: newtshirt.price
+                    })
+                    try {
+                        t_shirt.save();
+                    } catch (err) {
+                        return next(err);
+                    }
+                })
 
-                const csv = j2cp.parse(mobileData)
-
-                fs.writeFileSync("./mobile.csv", csv, "utf-8");
-
-                return res.json('done');
-
-            }
-            )();
+                browser.close();
+                return res.json('data added')
+            })();
+        } catch (error) {
+            console.error(error);
+        }
 
     }
 
@@ -448,5 +494,5 @@ const flipkart = {
 export default {
     registerController, loginController, userController,
     deleteController, userlist, addressController, addressDelete,
-    forgotPassword, verifyResetPassword, profileImage, flipkart
+    forgotPassword, verifyResetPassword, profileImage, flipkart, snapdeal
 };
