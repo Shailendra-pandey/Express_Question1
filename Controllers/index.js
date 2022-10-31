@@ -25,7 +25,6 @@ const cheerio = require("cheerio");
 const fs = require("fs");
 const json2csv = require("json2csv").Parser;
 const puppeteer = require("puppeteer");
-import urls from "../mobile_urls.json";
 
 const registerController = {
   async register(req, res, next) {
@@ -223,7 +222,8 @@ const userController = {
 const deleteController = {
   async delete(req, res, next) {
     try {
-      const users = await user.deleteOne({ _id: req.user });
+      await user.deleteOne({ _id: req.user });
+      return res.json('user deleted')
     } catch (err) {
       return next(err);
     }
