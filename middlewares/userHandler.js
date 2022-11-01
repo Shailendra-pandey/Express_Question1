@@ -1,5 +1,5 @@
 import Jwt from "jsonwebtoken";
-import { access_token } from "../models";
+// import { access_token } from "../models";
 import CustomErrorHandler from "../services/CustomErrorHandler";
 import JwtService from "../services/JwtService";
 
@@ -18,8 +18,8 @@ const userHandler = async (req, res, next) => {
 
 
     try{
-        const {_id} = await JwtService.verify(token);
-        req.user = {_id};
+        const {id} = await JwtService.verify(token);
+        req.user = {id};
 
         next();
 

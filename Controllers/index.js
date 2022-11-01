@@ -1,13 +1,13 @@
 import Joi, { link, string } from "joi";
 import CustomErrorHandler from "../services/CustomErrorHandler";
-import {
-  user,
-  access_token,
-  addressSc,
-  images,
-  tshirt,
-  mobile,
-} from "../models";
+// import {
+//   user,
+//   access_token,
+//   addressSc,
+//   images,
+//   tshirt,
+//   mobile,
+// } from "../models";
 import bcrypt from "bcrypt";
 import JwtService from "../services/JwtService";
 import passport from "passport";
@@ -25,6 +25,10 @@ const cheerio = require("cheerio");
 const fs = require("fs");
 const json2csv = require("json2csv").Parser;
 const puppeteer = require("puppeteer");
+const Sequelize = require("sequelize");
+const sequelize = require("../models");
+const Usermodel = require("../models/userdetails.model");
+const addressModel = require("../models/useraddress.model");
 
 const registerController = {
   async register(req, res, next) {
@@ -130,7 +134,7 @@ const loginController = {
         return res.json(err);
       }
 
-      const token = JwtService.sign({ _id: users._id });
+      const token = JwtService.sign({ id: users.id });
       res.json({ token });
     })(req, res, next);
 
@@ -180,26 +184,59 @@ const addressController = {
       return next(error);
     }
 
-    try {
-      const users = await user.findOne({ _id: req.user });
+    console.log(req.user);
 
-      const add = new addressSc({
-        user_id: users._id,
-        address,
-        city,
-        state,
-        pin_code,
-        phone_no,
+    // const User = Usermodel(sequelize, Sequelize);
+    const add = addressModel(sequelize, Sequelize);
+
+    const { id } = req.user;
+
+    console.log(id);
+    // try {
+    // const users = await User.findOne({ where: { id: id } });
+
+    // console.log(users.dataValues.id);
+
+    sequelize
+      .sync()
+      .then(() => {
+        console.log("table created");
+        add.create({
+          user_id: id,
+          address,
+          city,
+          state,
+          pin_code,
+          phone_no,
+        })
+          .then((res) => {
+            console,log(res)
+          })
+          .catch((error) => {
+            console.log(error)
+          });
+      })
+      .catch((error) => {
+        console.error(error);
       });
 
-      try {
-        await add.save();
-      } catch (err) {
-        return next(err);
-      }
-    } catch (err) {
-      return next(err);
-    }
+    // await add.create({
+    //   user_id: users.dataValues.id,
+    //   address: address,
+    //   city: city,
+    //   state: state,
+    //   pin_code: pin_code,
+    //   phone_no: phone_no,
+    // });
+
+    // try {
+    //   await add.save();
+    // } catch (err) {
+    //   return next(err);
+    // }
+    // } catch (err) {
+    //   return next(err);
+    // }
 
     res.json("Address added");
   },
@@ -223,7 +260,7 @@ const deleteController = {
   async delete(req, res, next) {
     try {
       await user.deleteOne({ _id: req.user });
-      return res.json('user deleted')
+      return res.json("user deleted");
     } catch (err) {
       return next(err);
     }

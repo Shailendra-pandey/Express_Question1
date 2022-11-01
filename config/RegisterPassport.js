@@ -1,40 +1,55 @@
-import { user } from '../models';
+const Usermodel = require("../models/userdetails.model");
+const sequelize = require("../models");
+const LocalStrategy = require("passport-local").Strategy;
+const bcrypt = require("bcrypt");
+const passport = require("passport");
+const { Sequelize} = require("sequelize");
 
-const LocalStrategy = require('passport-local').Strategy;
-const bcrypt = require('bcrypt');
-const passport = require('passport');
+const User = Usermodel(sequelize, Sequelize);
 
 const initialize = (passport, getUserByEmail, save) => {
-    passport.use('local-signup', new LocalStrategy({
-        usernameField: 'email',
-        passwordField: 'password',
-        passReqToCallback: true
-    }, async (req, email, password, done) => {
+  passport.use(
+    "local-signup",
+    new LocalStrategy(
+      {
+        usernameField: "email",
+        passwordField: "password",
+        passReqToCallback: true,
+      },
+      async (req, email, password, done) => {
         try {
-            const firstName = req.body.firstName
-            const lastName = req.body.lastName
-            const userName = req.body.userName
+          const firstName = req.body.firstName;
+          const lastName = req.body.lastName;
+          const userName = req.body.userName;
 
-            const exist = await user.exists({
-                userName: req.body.userName,
-                email: req.body.email
+          const encryptPassword = await bcrypt.hash(password, 10);
+          const newUser = sequelize
+            .sync()
+            .then(() => {
+              console.log("table created");
+              User.create({
+                firstName,
+                lastName,
+                userName,
+                email,
+                password: encryptPassword,
+              })
+                .then((res) => {
+                  return done(null, res);
+                })
+                .catch((error) => {
+                  return done("user exist", false);
+                });
+            })
+            .catch((error) => {
+              console.error(error);
             });
-
-            if (exist) {
-                return done('user exist', false);
-            }
-
-            const encryptPassword = await bcrypt.hash(password, 10);
-
-            const newUser = await user.create({ firstName, lastName, userName, email, password: encryptPassword });
-
-            return done(null, newUser);
-
         } catch (err) {
-            done(err);
+          done(err);
         }
-    }
-    ))
-}
+      }
+    )
+  );
+};
 
 export default initialize;
