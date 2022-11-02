@@ -29,6 +29,12 @@ const Sequelize = require("sequelize");
 const sequelize = require("../models");
 const Usermodel = require("../models/userdetails.model");
 const addressModel = require("../models/useraddress.model");
+const imageModel = require("../models/image.model");
+const mobileModel = require("../models/mobile.model");
+const tshirtModel = require("../models/tshirt.model");
+
+const User = Usermodel(sequelize, Sequelize);
+const addr = addressModel(sequelize, Sequelize);
 
 const registerController = {
   async register(req, res, next) {
@@ -184,59 +190,31 @@ const addressController = {
       return next(error);
     }
 
-    console.log(req.user);
-
-    // const User = Usermodel(sequelize, Sequelize);
-    const add = addressModel(sequelize, Sequelize);
-
     const { id } = req.user;
-
-    console.log(id);
-    // try {
-    // const users = await User.findOne({ where: { id: id } });
-
-    // console.log(users.dataValues.id);
 
     sequelize
       .sync()
       .then(() => {
         console.log("table created");
-        add.create({
-          user_id: id,
-          address,
-          city,
-          state,
-          pin_code,
-          phone_no,
-        })
+        addr
+          .create({
+            user_id: id,
+            address,
+            city,
+            state,
+            pin_code,
+            phone_no,
+          })
           .then((res) => {
-            console,log(res)
+            console.log(res);
           })
           .catch((error) => {
-            console.log(error)
+            console.log(error);
           });
       })
       .catch((error) => {
         console.error(error);
       });
-
-    // await add.create({
-    //   user_id: users.dataValues.id,
-    //   address: address,
-    //   city: city,
-    //   state: state,
-    //   pin_code: pin_code,
-    //   phone_no: phone_no,
-    // });
-
-    // try {
-    //   await add.save();
-    // } catch (err) {
-    //   return next(err);
-    // }
-    // } catch (err) {
-    //   return next(err);
-    // }
 
     res.json("Address added");
   },
@@ -244,10 +222,13 @@ const addressController = {
 
 const userController = {
   async userdetail(req, res, next) {
-    try {
-      const users = await user.findOne({ _id: req.user });
+    const { id } = req.user;
 
-      const address = await addressSc.findOne({ user_id: req.user });
+    try {
+      const users = await User.findOne({ where: { id } });
+      const address = await addr.findOne({
+        where: { user_id: users.dataValues.id },
+      });
 
       res.json({ users, address });
     } catch (err) {
@@ -258,8 +239,10 @@ const userController = {
 
 const deleteController = {
   async delete(req, res, next) {
+    const { id } = req.user;
+
     try {
-      await user.deleteOne({ _id: req.user });
+      await User.destroy({ where: { id } });
       return res.json("user deleted");
     } catch (err) {
       return next(err);
@@ -269,21 +252,26 @@ const deleteController = {
 
 const userlist = {
   async list(req, res, next) {
-    const { page, limit } = req.query;
+    const { page } = req.query;
 
     try {
-      const users = await user
-        .find()
-        .limit(limit * 1)
-        .skip((page - 1) * limit)
-        .exec();
+      // const users = await User
+      //   .findAll()
+      //   .limit(limit * 1)
+      //   .skip((page - 1) * limit)
+      //   .exec();
 
-      const count = await user.countDocuments();
+      const users = await User.findAndCountAll({
+        limit: 10,
+        offset: (page - 1) * 10,
+      });
+
+      // const count = await User.countDocuments();
 
       res.json({
         users,
-        totalPages: Math.ceil(count / limit),
-        currentPage: page,
+        // totalPages: Math.ceil(count / limit),
+        // currentPage: page,
       });
     } catch (err) {
       return next(err);
@@ -293,8 +281,10 @@ const userlist = {
 
 const addressDelete = {
   async delete(req, res, next) {
+    const { id } = req.user;
+
     try {
-      await addressSc.deleteMany({ user_id: req.user });
+      await addr.destroy({ where: { user_id: id } });
       return res.json("address deleted");
     } catch (err) {
       return next(err);
@@ -305,13 +295,13 @@ const addressDelete = {
 const forgotPassword = {
   async resetPassword(req, res, next) {
     try {
-      const users = await user.findOne({ email: req.body.email });
+      const users = await User.findOne({ where: { email: req.body.email } });
 
       if (!users) {
         return res.json("user not found");
       }
 
-      const token = JwtService.sign({ _id: users._id }, "15m");
+      const token = JwtService.sign({ id: users.dataValues.id }, "15m");
 
       let message = {
         from: "sydnie <sydnie56@ethereal.email>",
@@ -345,8 +335,10 @@ const verifyResetPassword = {
       return next(error);
     }
 
+    const { id } = req.user;
+
     try {
-      const users = await user.findOne({ _id: req.user });
+      const users = await User.findOne({ where: { id } });
 
       if (!users) {
         return res.json("user not found");
@@ -354,7 +346,7 @@ const verifyResetPassword = {
 
       const encryptPassword = await bcrypt.hash(req.body.password, 10);
 
-      await users.updateOne({ password: encryptPassword });
+      await User.update({ password: encryptPassword }, { where: { id: id } });
 
       let message = {
         from: "sydnie56@ethereal.email",
@@ -377,6 +369,8 @@ const verifyResetPassword = {
 
 const profileImage = {
   async Images(req, res, next) {
+    const image = imageModel(sequelize, Sequelize);
+
     try {
       const flag = req.body.online;
 
@@ -384,14 +378,24 @@ const profileImage = {
         let data = await cloudinary.v2.uploader.upload(req.file.path);
         return res.json(data.secure_url);
       } else {
-        const newImage = new images({
-          image: {
-            data: req.file.filename,
-            contentType: "image/png",
-          },
-        });
-
-        newImage.save();
+        sequelize
+          .sync()
+          .then(() => {
+            console.log("table created");
+            image
+              .create({
+                photo: req.file.filename,
+              })
+              .then((res) => {
+                console.log(res);
+              })
+              .catch((error) => {
+                console.log(error);
+              });
+          })
+          .catch((error) => {
+            console.error(error);
+          });
 
         return res.json("image uploaded");
       }
@@ -403,6 +407,8 @@ const profileImage = {
 
 const flipkart = {
   async mobile(req, res, next) {
+    const mobile = mobileModel(sequelize, Sequelize);
+
     const url =
       "https://www.flipkart.com/search?q=mobiles&as=on&as-show=on&otracker=AS_Query_TrendingAutoSuggest_1_0_na_na_na&otracker1=AS_Query_TrendingAutoSuggest_1_0_na_na_na&as-pos=1&as-type=HISTORY&suggestionId=mobiles&requestId=461cb39b-f157-4cde-9add-3a0c836b952e";
 
@@ -445,14 +451,29 @@ const flipkart = {
           });
           return results;
         });
-        mobile_details.forEach((m) => {
-          const mobile_data = new mobile({
-            mobileName: m.mobileName,
-            price: m.price,
-            specification: m.specification,
+
+        sequelize
+          .sync()
+          .then(() => {
+            console.log("table created");
+            mobile_details.forEach((m) => {
+              mobile
+                .create({
+                  mobileName: m.mobileName,
+                  price: m.price,
+                  specification: m.specification,
+                })
+                .then((res) => {
+                  console.log(res);
+                })
+                .catch((error) => {
+                  console.log(error);
+                });
+            });
+          })
+          .catch((error) => {
+            console.error(error);
           });
-          mobile_data.save();
-        });
       }
 
       browser.close();
@@ -466,6 +487,8 @@ const flipkart = {
 
 const snapdeal = {
   async tshirt(req, res, next) {
+    const tshirt = tshirtModel(sequelize, Sequelize);
+
     try {
       (async () => {
         const browser = await puppeteer.launch({
@@ -489,17 +512,27 @@ const snapdeal = {
           return results;
         });
 
-        tshirtDetail.forEach((newtshirt) => {
-          const t_shirt = new tshirt({
-            title: newtshirt.title,
-            price: newtshirt.price,
+        sequelize
+          .sync()
+          .then(() => {
+            console.log("table created");
+            tshirtDetail.forEach((newtshirt) => {
+              tshirt
+                .create({
+                  title: newtshirt.title,
+                  price: newtshirt.price,
+                })
+                .then((res) => {
+                  console.log(res);
+                })
+                .catch((error) => {
+                  console.log(error);
+                });
+            });
+          })
+          .catch((error) => {
+            console.error(error);
           });
-          try {
-            t_shirt.save();
-          } catch (err) {
-            return next(err);
-          }
-        });
 
         browser.close();
         return res.json("data added");
