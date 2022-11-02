@@ -1,10 +1,11 @@
 const express = require("express");
 const router = express.Router();
-import Controllers from "../Controllers";
+import { register, login, user, address } from "../Controllers";
 import userHandler from "../middlewares/userHandler";
 import upload from "../config/multer";
+import { registerValidate } from "../Validator";
 
-router.post("/register", Controllers.registerController.register);
+router.post("/register", registerValidate, register);
 router.post("/login", Controllers.loginController.login);
 router.get("/user", userHandler, Controllers.userController.userdetail);
 router.put("/deleteuser", userHandler, Controllers.deleteController.delete);
