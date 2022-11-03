@@ -1,5 +1,5 @@
 import { JWT_SERVICE } from '../config';
-import Jwt, { verify } from 'jsonwebtoken';
+import Jwt from 'jsonwebtoken';
 
 
 class JwtService{

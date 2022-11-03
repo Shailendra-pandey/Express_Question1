@@ -1,24 +1,24 @@
 const express = require("express");
 const router = express.Router();
-import Controllers from "../Controllers";
+import { register, login, user, address, profileImage, passwordReset, flipkart, snapdeal } from "../Controllers";
 import userHandler from "../middlewares/userHandler";
 import upload from "../config/multer";
+import { registerValidate, loginValidator, addressValidator, passwordValidate } from "../Validator";
 
-router.post("/register", Controllers.registerController.register);
-router.post("/login", Controllers.loginController.login);
-router.get("/user", userHandler, Controllers.userController.userdetail);
-router.put("/deleteuser", userHandler, Controllers.deleteController.delete);
-router.get("/userlist", Controllers.userlist.list);
-router.post("/address", userHandler, Controllers.addressController.add_detail);
-router.delete("/address", userHandler, Controllers.addressDelete.delete);
-router.post("/forgot-password", Controllers.forgotPassword.resetPassword);
+router.post("/register", registerValidate, register);
+router.post("/login", loginValidator, login);
+router.get("/user", userHandler, user.userdetail);
+router.put("/deleteuser", userHandler, user.deleteUser);
+router.get("/userlist", user.AllUsers);
+router.post("/address", userHandler, addressValidator, address.add_address);
+router.delete("/address", userHandler, address.delete_address);
+router.post("/forgot-password", passwordReset.passwordResetToken);
 router.put(
   "/verify-reset-password",
-  userHandler,
-  Controllers.verifyResetPassword.verifyPassword
-);
-router.put("/profile-image", upload, Controllers.profileImage.Images);
-router.get("/mobile", Controllers.flipkart.mobile);
-router.get("/tshirt", Controllers.snapdeal.tshirt);
+  userHandler, passwordValidate,
+  passwordReset.verifyResetPasswordToken);
+router.put("/profile-image", upload, profileImage);
+router.get("/mobile", flipkart);
+router.get("/tshirt", snapdeal);
 
 export default router;
