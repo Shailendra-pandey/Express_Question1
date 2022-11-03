@@ -1,4 +1,14 @@
+const Sequelize = require('sequelize');
+const sequelize = require('../models')
+const usermodel = require("../models/userdetails.model");
+import JwtService from '../services/JwtService';
+import mail from '../services/email'
+import bcrypt from 'bcrypt'
+
+const User = usermodel(sequelize, Sequelize)
+
 const passwordResetToken = async (req, res, next) => {
+
     try {
         const users = await User.findOne({ where: { email: req.body.email } });
 
@@ -44,11 +54,11 @@ const verifyResetPasswordToken = async (req, res, next) => {
         let message = {
             from: "sydnie56@ethereal.email",
 
-            to: users.email,
+            to: users.dataValues.email,
 
-            subject: "Registration",
+            subject: "Password Reset",
 
-            text: "You are registered successfully",
+            text: "Your password is reset successfully",
         };
 
         mail(message);

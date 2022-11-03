@@ -1,3 +1,11 @@
+import { Sequelize } from 'sequelize';
+const sequelize = require('../models');
+const addressmodel = require('../models/useraddress.model')
+
+
+const addr = addressmodel(sequelize, Sequelize)
+
+
 const add_address = async (req, res, next) => {
 
     const { address, city, state, pin_code, phone_no } = req.body;
@@ -42,4 +50,4 @@ const delete_address = async (req, res, next) => {
     }
 }
 
-export default { add_address, delete_address }
+export default {add_address, delete_address}

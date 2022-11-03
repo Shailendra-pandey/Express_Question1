@@ -4,8 +4,8 @@ import mongoose from 'mongoose';
 import errorHandler from './middlewares/errorHandler';
 import routes from './routes';
 import passport from 'passport';
-import init from './config/LoginPassport';
-import initialize from './config/RegisterPassport';
+import init from './auth/LoginPassport';
+import initialize from './auth/RegisterPassport';
 const db = require('./models');
 const sequelize = require('./models')
 

@@ -1,13 +1,22 @@
-const loginValidate = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().required(),
-});
+import Joi from "joi";
 
-const { error } = loginValidate.validate(req.body);
+const loginValidator = (req, res, next) => {
 
-if (error) {
-  return next(error);
+  const validator = Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().required(),
+  });
+
+  const { error } = validator.validate(req.body);
+
+
+  if (error) {
+    return next(error);
+  }
+
+next();
+
 }
 
 
-export default loginValidate;
+export default loginValidator

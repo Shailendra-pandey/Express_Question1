@@ -1,3 +1,10 @@
+const sequelize = require('../models')
+const Sequelize = require('sequelize')
+const imageModel = require('../models/image.model')
+const cloudinary = require("cloudinary");
+const dotenv = require("dotenv");
+dotenv.config();
+
 module.exports = async (req, res, next) => {
   const image = imageModel(sequelize, Sequelize);
 
@@ -5,6 +12,13 @@ module.exports = async (req, res, next) => {
     const flag = req.body.online;
 
     if (flag == "true") {
+
+      cloudinary.v2.config({
+        cloud_name: process.env.CLOUD_NAME,
+        api_key: process.env.API_KEY,
+        api_secret: process.env.API_SECRET
+      })
+
       let data = await cloudinary.v2.uploader.upload(req.file.path);
       return res.json(data.secure_url);
     } else {
@@ -17,7 +31,7 @@ module.exports = async (req, res, next) => {
               photo: req.file.filename,
             })
             .then((res) => {
-              console.log(res);
+              return res;
             })
             .catch((error) => {
               console.log(error);

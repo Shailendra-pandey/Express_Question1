@@ -1,3 +1,8 @@
+const puppeteer = require('puppeteer')
+const Sequelize = require('sequelize')
+const sequelize = require('../models')
+const mobileModel = require('../models/mobile.model')
+
 const flipkart = async (req, res, next) => {
     const mobile = mobileModel(sequelize, Sequelize);
 
@@ -76,4 +81,4 @@ const flipkart = async (req, res, next) => {
     }
 }
 
-export default flipkart;
+export default flipkart

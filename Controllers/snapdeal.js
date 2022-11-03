@@ -1,3 +1,8 @@
+const puppeteer = require('puppeteer')
+const Sequelize = require('sequelize')
+const sequelize = require('../models')
+const tshirtModel = require('../models/tshirt.model')
+
 const snapdeal = async (req, res, next) => {
     const tshirt = tshirtModel(sequelize, Sequelize);
 
@@ -54,4 +59,4 @@ const snapdeal = async (req, res, next) => {
     }
 }
 
-export default snapdeal;
+export default snapdeal

@@ -3,7 +3,7 @@ const sequelize = require("../models");
 const LocalStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcrypt");
 const passport = require("passport");
-const { Sequelize} = require("sequelize");
+const { Sequelize } = require("sequelize");
 
 const User = Usermodel(sequelize, Sequelize);
 
@@ -23,7 +23,7 @@ const initialize = (passport, getUserByEmail, save) => {
           const userName = req.body.userName;
 
           const encryptPassword = await bcrypt.hash(password, 10);
-          const newUser = sequelize
+          sequelize
             .sync()
             .then(() => {
               console.log("table created");
@@ -33,13 +33,11 @@ const initialize = (passport, getUserByEmail, save) => {
                 userName,
                 email,
                 password: encryptPassword,
-              })
-                .then((res) => {
-                  return done(null, res);
-                })
-                .catch((error) => {
-                  return done("user exist", false);
-                });
+              }).then((newUser) => {
+                return done(null, newUser);
+              }).catch((error) => {
+                return done("user exist", false);
+              });
             })
             .catch((error) => {
               console.error(error);

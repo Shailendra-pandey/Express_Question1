@@ -1,4 +1,13 @@
+const Sequelize = require('sequelize');
+const sequelize = require('../models')
+const usermodel = require("../models/userdetails.model");
+const addressmodel = require("../models/useraddress.model")
+
+const User = usermodel(sequelize, Sequelize)
+const addr = addressmodel(sequelize, Sequelize)
+
 const userdetail = async (req, res, next) => {
+
     const { id } = req.user;
 
     try {
@@ -51,5 +60,4 @@ const AllUsers = async (req, res, next) => {
     }
 }
 
-
-export default { userdetail, deleteUser, AllUsers }
+export default {userdetail, deleteUser, AllUsers}

@@ -1,8 +1,11 @@
-export { register } from './register';
-export { login } from './login';
-export { user } from './user';
-export { address } from './address';
-export { profileImage } from './profileImage';
-export { passwordReset } from './passwordReset';
-export { flipkart } from './flipkart';
-export { snapdeal } from './snapdeal';
+import flipkart from './flipkart';
+import login from './login';
+import profileImage from './profileImage';
+import register from './register';
+import snapdeal from './snapdeal';
+import user from './user';
+import passwordReset from './passwordReset';
+import address from './address'
+
+
+export {register, login, user, address, profileImage, passwordReset, flipkart, snapdeal}
